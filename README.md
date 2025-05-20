@@ -1,1 +1,131 @@
-# Balances
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>جدول الحساب اليومي</title>
+  <script src="https://cdn.jsdelivr.net/npm/xlsx/dist/xlsx.full.min.js"></script>
+  <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+  <style>
+    body {
+      font-family: 'Tahoma', sans-serif;
+      background: #f4f4f9;
+      color: #333;
+      padding: 20px;
+    }
+    h1 {
+      color: #4a148c;
+    }
+    table {
+      border-collapse: collapse;
+      width: 100%;
+      margin-top: 20px;
+      background: #fff;
+      border-radius: 8px;
+      overflow: hidden;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+    }
+    th, td {
+      border: 1px solid #ddd;
+      padding: 10px;
+      text-align: center;
+    }
+    th {
+      background-color: #7b1fa2;
+      color: white;
+    }
+    .summary {
+      margin-top: 20px;
+      padding: 15px;
+      background: #ede7f6;
+      border: 1px solid #7b1fa2;
+      border-radius: 6px;
+      display: flex;
+      justify-content: space-around;
+    }
+    .summary div {
+      font-size: 18px;
+      font-weight: bold;
+    }
+    input, button {
+      padding: 8px;
+      margin: 5px;
+      border-radius: 4px;
+      border: 1px solid #ccc;
+    }
+    #search {
+      width: 300px;
+    }
+  </style>
+</head>
+<body>
+  <h1>جدول الحساب اليومي</h1>
+
+  <input type="file" id="excelFile" accept=".xlsx" />
+  <input type="text" id="search" placeholder="ابحث عن بيان أو ملاحظة...">
+
+  <div class="summary">
+    <div>الرصيد: <span id="totalIn">0</span> د.ا.‏</div>
+    <div>المصاريف: <span id="totalOut">0</span> د.ا.‏</div>
+    <div>الباقي: <span id="remaining">0</span> د.ا.‏</div>
+  </div>
+
+  <table id="dataTable">
+    <thead>
+      <tr>
+        <th>م</th>
+        <th>التاريخ</th>
+        <th>منه</th>
+        <th>له</th>
+        <th>البيان</th>
+        <th>ملاحظات</th>
+      </tr>
+    </thead>
+    <tbody></tbody>
+  </table>
+
+  <script>
+    document.getElementById('excelFile').addEventListener('change', function(e) {
+      const file = e.target.files[0];
+      const reader = new FileReader();
+
+      reader.onload = function(e) {
+        const data = new Uint8Array(e.target.result);
+        const workbook = XLSX.read(data, { type: 'array' });
+        const sheet = workbook.Sheets[workbook.SheetNames[0]];
+        const json = XLSX.utils.sheet_to_json(sheet, { header: 1 });
+
+        let tbody = '';
+        let totalIn = 0, totalOut = 0;
+
+        json.forEach((row, i) => {
+          if (i === 0 || row.length < 6) return;
+          tbody += '<tr>' + row.map(cell => `<td>${cell || ''}</td>`).join('') + '</tr>';
+
+          let out = parseFloat(row[2]) || 0;
+          let into = parseFloat(row[3]) || 0;
+          totalOut += out;
+          totalIn += into;
+        });
+
+        document.querySelector('#dataTable tbody').innerHTML = tbody;
+        document.getElementById('totalOut').innerText = totalOut.toFixed(2);
+        document.getElementById('totalIn').innerText = totalIn.toFixed(2);
+        document.getElementById('remaining').innerText = (totalIn - totalOut).toFixed(2);
+      };
+
+      reader.readAsArrayBuffer(file);
+    });
+
+    document.getElementById('search').addEventListener('input', function() {
+      const val = this.value.toLowerCase();
+      const rows = document.querySelectorAll('#dataTable tbody tr');
+
+      rows.forEach(row => {
+        const text = row.innerText.toLowerCase();
+        row.style.display = text.includes(val) ? '' : 'none';
+      });
+    });
+  </script>
+</body>
+</html>
